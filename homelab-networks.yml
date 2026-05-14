@@ -4,6 +4,7 @@
 services:
   anytype-cli:
     networks:
+      default: {}
       ai-internal:
         aliases:
           - anytype-cli
