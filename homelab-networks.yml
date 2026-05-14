@@ -1,0 +1,14 @@
+# Homelab overlay (Komodo file_paths merge after docker-compose.yml).
+# Puts anytype-cli on the same Docker network as LiteLLM for http://anytype-cli:31012
+
+services:
+  anytype-cli:
+    networks:
+      ai-internal:
+        aliases:
+          - anytype-cli
+
+networks:
+  ai-internal:
+    name: ai_internal
+    external: true
