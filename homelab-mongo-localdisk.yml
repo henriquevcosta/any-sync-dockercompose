@@ -1,0 +1,14 @@
+# Homelab overlay (Komodo `file_paths` merge after docker-compose.yml).
+# Keep upstream docker-compose.yml on STORAGE_DIR; this file overrides only
+# mongo-1 so WiredTiger can use a host path outside CIFS.
+#
+# Official mongo image runs as uid 999; a CIFS mount forced to another uid
+# (e.g. Plex SMB user) cannot create /data/db/journal — Permission denied.
+#
+# Set MONGO_DATA_PATH in stack env (Komodo) or .env to a VM-local directory
+# owned by uid 999 (see ansible-nas roles/media_vm + any_sync stack env).
+
+services:
+  mongo-1:
+    volumes:
+      - "${MONGO_DATA_PATH:-${STORAGE_DIR}/mongo-1}:/data/db:Z"
