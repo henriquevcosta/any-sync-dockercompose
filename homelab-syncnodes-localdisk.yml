@@ -1,0 +1,29 @@
+# Homelab overlay — SQLite / WAL under CIFS often fails with "database is locked"
+# (see any-sync-node logs). Keep ./etc bind mounts from the clone; move heavy
+# RW state for the three sync nodes to VM-local disk when ANY_SYNC_LOCALDATA_ROOT
+# is set (Komodo stack env on aoi). Unset elsewhere: paths fall back to STORAGE_DIR.
+
+services:
+  any-sync-node-1:
+    volumes:
+      - ./etc/any-sync-node-1:/etc/any-sync-node:Z
+      - ./etc/.aws:/root/.aws:ro
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/any-sync-node-1:/storage:Z"
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/anyStorage/any-sync-node-1:/anyStorage:Z"
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/networkStore/any-sync-node-1:/networkStore:Z"
+
+  any-sync-node-2:
+    volumes:
+      - ./etc/any-sync-node-2:/etc/any-sync-node:Z
+      - ./etc/.aws:/root/.aws:ro
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/any-sync-node-2:/storage:Z"
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/anyStorage/any-sync-node-2:/anyStorage:Z"
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/networkStore/any-sync-node-2:/networkStore:Z"
+
+  any-sync-node-3:
+    volumes:
+      - ./etc/any-sync-node-3:/etc/any-sync-node:Z
+      - ./etc/.aws:/root/.aws:ro
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/any-sync-node-3:/storage:Z"
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/anyStorage/any-sync-node-3:/anyStorage:Z"
+      - "${ANY_SYNC_LOCALDATA_ROOT:-${STORAGE_DIR}}/networkStore/any-sync-node-3:/networkStore:Z"
