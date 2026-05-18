@@ -1,0 +1,19 @@
+# Homelab overlay — bind anytype-cli HTTP API on all interfaces inside the container.
+#
+# Upstream docker-compose publishes "${ANYTYPE_CLI_API_PORT}:31012"; that only maps
+# host→container ports. The anytype process still defaults to 127.0.0.1:31012, so
+# other containers on ai_internal (LiteLLM → anytype-mcp) get connection refused when
+# they hit the anytype-cli service DNS name (container eth0 IP).
+#
+# Ref: https://github.com/anyproto/anytype-cli#network-configuration (--listen-address)
+#
+# Copy this file to the root of henriquevcosta/any-sync-dockercompose (same level as
+# docker-compose.yml) and add it to Komodo stack file_paths after bootstrap overlay.
+
+services:
+  anytype-cli:
+    # Image ENTRYPOINT is `anytype`; default CMD is `serve`. Append flags to CMD.
+    command:
+      - serve
+      - --listen-address
+      - 0.0.0.0:31012
