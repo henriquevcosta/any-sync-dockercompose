@@ -1,24 +1,41 @@
-# Homelab overlay — anytype-cli image (2025+) installs the binary at
-# /usr/local/bin/anytype (see anyproto/anytype-cli Dockerfile). Upstream
-# any-sync-dockercompose bootstrap still calls /app/anytype, which breaks
-# "Creating bot account" and leaves anytype-cli without config.json.
+# Homelab overlay — (1) anytype-cli binary path (see homelab-anytype-cli-bootstrap
+# comment in git history); (2) upstream bootstrap uses sleep 2 then auth create — on
+# a full any-sync stack, coordinator/filenode can still return 502 / DeadlineExceeded
+# that soon; wait for local gRPC and retry auth with backoff.
 
 services:
   anytype-cli_bootstrap:
-    entrypoint: >
-      /bin/sh -c "
-      if [ ! -f /root/.anytype/config.json ]; then
-        echo 'Creating bot account...';
-        /usr/local/bin/anytype serve &
-        SERVER_PID=$$!;
-        sleep 2;
-        /usr/local/bin/anytype auth create $${ANYTYPE_CLI_ACCOUNT_NAME} --network-config /etc/anytype/network.yml || true;
-        echo 'Waiting for account initialization...';
-        sleep 2;
-        kill $$SERVER_PID 2>/dev/null || true;
-        wait $$SERVER_PID 2>/dev/null || true;
-      else
-        echo 'Bot account already exists, skipping bootstrap';
-      fi;
-      exit 0;
-      "
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+          if [ ! -f /root/.anytype/config.json ]; then
+            echo 'Creating bot account...'
+            /usr/local/bin/anytype serve &
+            SERVER_PID=$$!
+            echo 'Waiting for local gRPC (127.0.0.1:31010)...'
+            for j in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do
+              if nc -z 127.0.0.1 31010 2>/dev/null; then echo 'gRPC up'; break; fi
+              sleep 2
+            done
+            if ! nc -z 127.0.0.1 31010 2>/dev/null; then echo 'gRPC never became ready'; exit 1; fi
+            echo 'Local gRPC is up; waiting for coordinator/filenode (avoid 502 on first auth)...'
+            sleep 20
+            ok=0
+            for a in 1 2 3 4 5 6 7 8; do
+              echo "auth create attempt $$a"
+              if /usr/local/bin/anytype auth create "$${ANYTYPE_CLI_ACCOUNT_NAME}" --network-config /etc/anytype/network.yml; then
+                ok=1
+                break
+              fi
+              sleep 15
+            done
+            if [ "$$ok" != 1 ]; then echo 'auth create failed after retries'; exit 1; fi
+            echo 'Waiting for account initialization...'
+            sleep 10
+            kill $$SERVER_PID 2>/dev/null || true
+            wait $$SERVER_PID 2>/dev/null || true
+          else
+            echo 'Bot account already exists, skipping bootstrap'
+          fi
+          exit 0
