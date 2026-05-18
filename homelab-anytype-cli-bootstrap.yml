@@ -1,0 +1,24 @@
+# Homelab overlay — anytype-cli image (2025+) installs the binary at
+# /usr/local/bin/anytype (see anyproto/anytype-cli Dockerfile). Upstream
+# any-sync-dockercompose bootstrap still calls /app/anytype, which breaks
+# "Creating bot account" and leaves anytype-cli without config.json.
+
+services:
+  anytype-cli_bootstrap:
+    entrypoint: >
+      /bin/sh -c "
+      if [ ! -f /root/.anytype/config.json ]; then
+        echo 'Creating bot account...';
+        /usr/local/bin/anytype serve &
+        SERVER_PID=$$!;
+        sleep 2;
+        /usr/local/bin/anytype auth create $${ANYTYPE_CLI_ACCOUNT_NAME} --network-config /etc/anytype/network.yml || true;
+        echo 'Waiting for account initialization...';
+        sleep 2;
+        kill $$SERVER_PID 2>/dev/null || true;
+        wait $$SERVER_PID 2>/dev/null || true;
+      else
+        echo 'Bot account already exists, skipping bootstrap';
+      fi;
+      exit 0;
+      "
